@@ -15,7 +15,7 @@ struct Queue {
     size_t   size;
 
     /* TODO: Add any necessary thread and synchronization primitives */
-    pthread_mutex_t* mutex;
+    pthread_mutex_t mutex;
 };
 
 /* Functions */

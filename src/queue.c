@@ -2,6 +2,8 @@
 
 #include "mq/queue.h"
 
+#include <assert.h>
+
 /**
  * Create queue structure.
  * @return  Newly allocated queue structure.
@@ -14,7 +16,7 @@ Queue * queue_create() {
     q->head = NULL;
     q->tail = NULL;
     q->size = 0;
-    int res = pthread_mutex_init(q->mutex, NULL);
+    int res = pthread_mutex_init(&q->mutex, NULL);
     if (res != 0) {
         fprintf(stderr, "Something went wrong with mutex init err=%d\n", res);
         free(q);
