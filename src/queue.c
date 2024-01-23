@@ -45,14 +45,17 @@ void queue_delete(Queue *q) {
  * @param   r       Request structure.
  */
 void queue_push(Queue *q, Request *r) {
+    pthread_mutex_lock(&q->mutex);
     if (q->size == 0) {
         q->head = r;
         q->tail = r;
         q->size = 1;
     } else {
         q->tail->next = r;
-        q->tail = q->tail->next;
+        q->tail = r;
+        q->size++;
     }
+    pthread_mutex_unlock(&q->mutex);
 }
 
 /**
@@ -69,11 +72,13 @@ Request * queue_pop(Queue *q) {
         Request* req = q->head;
         q->head = NULL;
         q->tail = NULL;
+        q->size = 0;
         return req;
     }
 
     Request* req = q->head;
     q->head = req->next;
+    q->size--;
     return req;
 }
 
