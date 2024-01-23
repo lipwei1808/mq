@@ -15,6 +15,7 @@ struct Queue {
     size_t   size;
 
     /* TODO: Add any necessary thread and synchronization primitives */
+    pthread_mutex_t* mutex;
 };
 
 /* Functions */
@@ -24,6 +25,8 @@ void        queue_delete(Queue *q);
 
 void	    queue_push(Queue *q, Request *r);
 Request *   queue_pop(Queue *q);
+
+void        queue_status(Queue* q);
 
 #endif
 

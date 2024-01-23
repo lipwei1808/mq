@@ -13,6 +13,7 @@ CLIENT_HEADERS  = $(wildcard include/mq/*.h)
 CLIENT_SOURCES  = $(wildcard src/*.c)
 CLIENT_OBJECTS  = $(CLIENT_SOURCES:.c=.o)
 CLIENT_LIBRARY  = lib/libmq_client.a
+CLIENT_APP  		= bin/chat
 
 TEST_SOURCES    = $(wildcard tests/test_*.c)
 TEST_OBJECTS    = $(TEST_SOURCES:.c=.o)
@@ -20,7 +21,7 @@ TEST_PROGRAMS   = $(subst tests,bin,$(basename $(TEST_OBJECTS)))
 
 # Rules
 
-all:	$(CLIENT_LIBRARY)
+all:	$(CLIENT_APP)
 
 %.o:			%.c $(CLIENT_HEADERS)
 	@echo "Compiling $@"
@@ -32,6 +33,10 @@ $(CLIENT_LIBRARY):	$(CLIENT_OBJECTS)
 
 bin/%:  		tests/%.o $(CLIENT_LIBRARY)
 	@echo "Linking   $@"
+	@$(LD) $(LDFLAGS) -o $@ $^
+
+$(CLIENT_APP):	src/chat.o $(CLIENT_LIBRARY)
+	@echo "Linking $@"
 	@$(LD) $(LDFLAGS) -o $@ $^
 
 test:			$(TEST_PROGRAMS)

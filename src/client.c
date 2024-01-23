@@ -24,7 +24,37 @@ void * mq_puller(void *);
  * @return  Newly allocated Message Queue structure.
  */
 MessageQueue * mq_create(const char *name, const char *host, const char *port) {
-    return NULL;
+    MessageQueue* mq = malloc(sizeof(MessageQueue));
+    if (mq == NULL) {
+        fprintf(stderr, "Error in mq_create malloc\n");
+    }
+
+    // Initialize name, host and port
+    strncpy(mq->name, name, NI_MAXHOST - 1);
+    mq->name[NI_MAXHOST - 1] = '\0';
+    strncpy(mq->host, host, NI_MAXHOST - 1);
+    mq->host[NI_MAXHOST - 1] = '\0';
+    strncpy(mq->port, port, NI_MAXSERV - 1);
+    mq->port[NI_MAXSERV - 1] = '\0';
+
+    // Initialize outgoing
+    Queue* outgoing = queue_create();
+    if (outgoing == NULL) {
+        free(mq);
+        return NULL;
+    }
+    mq->outgoing = outgoing;
+
+    // Initialize incoming
+    Queue* incoming = queue_create();
+    if (incoming == NULL) {
+        queue_delete(outgoing);
+        free(mq);
+        return NULL;
+    }
+    mq->incoming = incoming;
+    mq->shutdown = false;
+    return mq;
 }
 
 /**
@@ -32,6 +62,9 @@ MessageQueue * mq_create(const char *name, const char *host, const char *port) {
  * @param   mq      Message Queue structure.
  */
 void mq_delete(MessageQueue *mq) {
+    queue_delete(mq->outgoing);
+    queue_delete(mq->incoming);
+    free(mq);
 }
 
 /**
