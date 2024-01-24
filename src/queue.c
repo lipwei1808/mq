@@ -22,6 +22,24 @@ Queue * queue_create() {
         free(q);
         return NULL;
     }
+
+    res = pthread_cond_init(&q->notEmpty, NULL);
+    if (res != 0) {
+        fprintf(stderr, "Something went wrong with cond notEmpty init err=%d\n", res);
+        pthread_mutex_destroy(&q->mutex);
+        free(q);
+        return NULL;
+    }
+
+    res = pthread_cond_init(&q->empty, NULL);
+    if (res != 0) {
+        fprintf(stderr, "Something went wrong with cond empty init err=%d\n", res);
+        pthread_mutex_destroy(&q->mutex);
+        pthread_cond_destroy(&q->notEmpty);
+        free(q);
+        return NULL;
+    }
+
     return q;
 }
 
@@ -36,6 +54,9 @@ void queue_delete(Queue *q) {
         request_delete(cur);
         cur = next;
     }
+    pthread_mutex_destroy(&q->mutex);
+    pthread_cond_destroy(&q->notEmpty);
+    pthread_cond_destroy(&q->empty);
     free(q);
 }
 

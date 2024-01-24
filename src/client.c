@@ -133,6 +133,10 @@ void mq_unsubscribe(MessageQueue *mq, const char *topic) {
  * @param   mq      Message Queue structure.
  */
 void mq_start(MessageQueue *mq) {
+    pthread_t pusher;
+    pthread_t puller;
+    pthread_create(&pusher, NULL, mq_pusher, NULL);
+    pthread_create(&puller, NULL, mq_puller, NULL);
 }
 
 /**
@@ -148,7 +152,7 @@ void mq_stop(MessageQueue *mq) {
  * @param   mq      Message Queue structure.
  */
 bool mq_shutdown(MessageQueue *mq) {
-    return false;
+    return mq->shutdown;
 }
 
 /* Internal Functions */
@@ -158,6 +162,9 @@ bool mq_shutdown(MessageQueue *mq) {
  * @param   arg     Message Queue structure.
  **/
 void * mq_pusher(void *arg) {
+    // Producer
+    // Wait on producer sem
+    // 
     return NULL;
 }
 
@@ -167,6 +174,7 @@ void * mq_pusher(void *arg) {
  * @param   arg     Message Queue structure.
  **/
 void * mq_puller(void *arg) {
+    // Consumer
     return NULL;
 }
 

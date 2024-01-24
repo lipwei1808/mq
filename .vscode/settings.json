@@ -1,6 +1,7 @@
 {
   "files.associations": {
     "__config": "c",
-    "queue.h": "c"
+    "queue.h": "c",
+    "thread.h": "c"
   }
 }

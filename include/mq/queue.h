@@ -15,7 +15,9 @@ struct Queue {
     size_t   size;
 
     /* TODO: Add any necessary thread and synchronization primitives */
-    pthread_mutex_t mutex;
+    pthread_mutex_t mutex;      // allows single access to the queue
+    pthread_cond_t notEmpty;    // condition to keep track when queue is not empty
+    pthread_cond_t empty;       // condition to track when queue is empty
 };
 
 /* Functions */
