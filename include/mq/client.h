@@ -10,6 +10,12 @@
 
 /* Structures */
 
+enum HTTP_METHOD {
+    GET,
+    PUT,
+    DELETE,
+};
+
 typedef struct MessageQueue MessageQueue;
 struct MessageQueue {
     char    name[NI_MAXHOST];	// Name of message queue
@@ -37,6 +43,7 @@ void		mq_stop(MessageQueue *mq);
 
 bool		mq_shutdown(MessageQueue *mq);
 
+char*       mq_get_method(enum HTTP_METHOD method);
 #endif
 
 /* vim: set expandtab sts=4 sw=4 ts=8 ft=c: */

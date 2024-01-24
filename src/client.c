@@ -74,6 +74,13 @@ void mq_delete(MessageQueue *mq) {
  * @param   body    Message body to publish.
  */
 void mq_publish(MessageQueue *mq, const char *topic, const char *body) {
+    char* method = mq_get_method(PUT);
+    size_t topic_len = strlen(topic);
+    char fmt_string[] = "/topic/%s";
+    int size = snprintf(NULL, 0, fmt_string, topic);
+    char* uri = malloc(sizeof(char) * (size + 1));
+    sprintf(uri, fmt_string, topic);
+    Request* req = request_create(method, uri, body);
 }
 
 /**
@@ -82,6 +89,12 @@ void mq_publish(MessageQueue *mq, const char *topic, const char *body) {
  * @return  Newly allocated message body (must be freed).
  */
 char * mq_retrieve(MessageQueue *mq) {
+    char* method = mq_get_method(GET);
+    char fmt_string[] = "/queue/%s";
+    int size = snprintf(NULL, 0, fmt_string, mq->name);
+    char* uri = malloc(sizeof(char) * (size + 1));
+    sprintf(uri, fmt_string, mq->name);
+    Request* req = request_create(method, uri, NULL);
     return NULL;
 }
 
@@ -91,6 +104,12 @@ char * mq_retrieve(MessageQueue *mq) {
  * @param   topic   Topic string to subscribe to.
  **/
 void mq_subscribe(MessageQueue *mq, const char *topic) {
+    char* method = mq_get_method(PUT);
+    char fmt_string[] = "/subscription/%s/%s";
+    int size = snprintf(NULL, 0, fmt_string, mq->name, topic);
+    char* uri = malloc(sizeof(char) * (size + 1));
+    sprintf(uri, fmt_string, mq->name, topic);
+    Request* req = request_create(method, uri, NULL);
 }
 
 /**
@@ -99,6 +118,12 @@ void mq_subscribe(MessageQueue *mq, const char *topic) {
  * @param   topic   Topic string to unsubscribe from.
  **/
 void mq_unsubscribe(MessageQueue *mq, const char *topic) {
+    char* method = mq_get_method(DELETE);
+    char fmt_string[] = "/subscription/%s/%s";
+    int size = snprintf(NULL, 0, fmt_string, mq->name, topic);
+    char* uri = malloc(sizeof(char) * (size + 1));
+    sprintf(uri, fmt_string, mq->name, topic);
+    Request* req = request_create(method, uri, NULL);
 }
 
 /**
@@ -143,6 +168,36 @@ void * mq_pusher(void *arg) {
  **/
 void * mq_puller(void *arg) {
     return NULL;
+}
+
+/**
+ * Retrieves a string HTTP method.
+ * @param   method    HTTP_METHOD enum.
+ * @return  char* HTTP method (must be freed).
+ **/
+char*       mq_get_method(enum HTTP_METHOD method) {
+    char* method_ptr = NULL;
+    char str[10] = "";
+    switch (method) {
+        case GET: {
+            strcpy(str, "GET");
+            break;
+        }
+        case PUT: {
+            strcpy(str, "PUT");
+            break;
+        }
+        case DELETE: {
+            strcpy(str, "DELETE");
+            break;
+        }
+        default: {
+            return NULL;
+        }
+    }
+    method_ptr = malloc(sizeof(char) * strlen(str));
+    strcpy(method_ptr, str);
+    return method_ptr;
 }
 
 /* vim: set expandtab sts=4 sw=4 ts=8 ft=c: */
