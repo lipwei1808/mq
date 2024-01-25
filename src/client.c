@@ -74,6 +74,7 @@ void mq_delete(MessageQueue *mq) {
  * @param   body    Message body to publish.
  */
 void mq_publish(MessageQueue *mq, const char *topic, const char *body) {
+    // generate request
     char* method = mq_get_method(PUT);
     size_t topic_len = strlen(topic);
     char fmt_string[] = "/topic/%s";
@@ -81,6 +82,9 @@ void mq_publish(MessageQueue *mq, const char *topic, const char *body) {
     char* uri = malloc(sizeof(char) * (size + 1));
     sprintf(uri, fmt_string, topic);
     Request* req = request_create(method, uri, body);
+
+    // put in queue
+    queue_push(&mq->outgoing, req);
 }
 
 /**
@@ -89,12 +93,6 @@ void mq_publish(MessageQueue *mq, const char *topic, const char *body) {
  * @return  Newly allocated message body (must be freed).
  */
 char * mq_retrieve(MessageQueue *mq) {
-    char* method = mq_get_method(GET);
-    char fmt_string[] = "/queue/%s";
-    int size = snprintf(NULL, 0, fmt_string, mq->name);
-    char* uri = malloc(sizeof(char) * (size + 1));
-    sprintf(uri, fmt_string, mq->name);
-    Request* req = request_create(method, uri, NULL);
     return NULL;
 }
 
@@ -110,6 +108,9 @@ void mq_subscribe(MessageQueue *mq, const char *topic) {
     char* uri = malloc(sizeof(char) * (size + 1));
     sprintf(uri, fmt_string, mq->name, topic);
     Request* req = request_create(method, uri, NULL);
+
+    // put in queue
+    queue_push(&mq->outgoing, req);
 }
 
 /**
@@ -124,6 +125,9 @@ void mq_unsubscribe(MessageQueue *mq, const char *topic) {
     char* uri = malloc(sizeof(char) * (size + 1));
     sprintf(uri, fmt_string, mq->name, topic);
     Request* req = request_create(method, uri, NULL);
+
+    // put in queue
+    queue_push(&mq->outgoing, req);
 }
 
 /**
@@ -133,10 +137,11 @@ void mq_unsubscribe(MessageQueue *mq, const char *topic) {
  * @param   mq      Message Queue structure.
  */
 void mq_start(MessageQueue *mq) {
+    FILE* socket = socket_connect(mq->host, mq->port);
     pthread_t pusher;
     pthread_t puller;
-    pthread_create(&pusher, NULL, mq_pusher, NULL);
-    pthread_create(&puller, NULL, mq_puller, NULL);
+    pthread_create(&pusher, NULL, mq_pusher, (void*) mq);
+    pthread_create(&puller, NULL, mq_puller, (void*) mq);
 }
 
 /**
@@ -163,8 +168,18 @@ bool mq_shutdown(MessageQueue *mq) {
  **/
 void * mq_pusher(void *arg) {
     // Producer
-    // Wait on producer sem
-    // 
+    MessageQueue* mq = (MessageQueue*) arg;
+    while (!mq_shutdown(mq)) {
+        pthread_mutex_lock(&mq->outgoing->mutex);
+        while (mq->outgoing->size == 0) {
+            pthread_cond_wait(&mq->outgoing->notEmpty, &mq->outgoing->mutex);
+        }
+
+        // Send message to server
+        Request* req = queue_pop(mq->outgoing);
+        pthread_mutex_unlock(&mq->outgoing->mutex);
+    }
+
     return NULL;
 }
 
@@ -175,7 +190,15 @@ void * mq_pusher(void *arg) {
  **/
 void * mq_puller(void *arg) {
     // Consumer
-    return NULL;
+    MessageQueue* mq = (MessageQueue*) arg;
+    char* method = mq_get_method(GET);
+    char fmt_string[] = "/queue/%s";
+    int size = snprintf(NULL, 0, fmt_string, mq->name);
+    char* uri = malloc(sizeof(char) * (size + 1));
+    sprintf(uri, fmt_string, mq->name);
+    Request* req = request_create(method, uri, NULL);
+    FILE* socket = socket_connect(mq->host, mq->port);
+    request_write(req, socket);
 }
 
 /**

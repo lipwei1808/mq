@@ -2,22 +2,32 @@
 
 #include "mq/queue.h"
 #include "mq/client.h"
-Queue* q;
 
-void* worker(void* arg) {
-  long k = (long) arg;
-  for (int i = 0; i < 1000000; i++) {
-    // printf("WORKER %d\n", k);
-    Request* req = request_create(NULL, NULL, NULL);
-    queue_push(q, req);
-  }
-  return NULL;
-}
+#include <string.h>
+
+MessageQueue* mq;
 
 int main() {
-  char* put = mq_get_method(PUT);
-  char* get = mq_get_method(GET);
-  char* del = mq_get_method(DELETE);
-  printf("Method: %s, %s, %s\n", get, put, del);
-  printf("Method: %p, %p, %p\n", &get, &put, &del);
+  // Initialize
+  char name[] = "chatx";
+  char host[] = "localhost";
+  char port[] = "9000";
+  mq = mq_create(name, host, port);
+  if (mq == NULL) {
+    fprintf(stderr, "error creating mq\n");
+    exit(1);
+  }
+
+  // Start event loop
+  while (!feof(stdin)) {
+    printf(">CHAT ");
+    char input[BUFSIZ];
+
+    fgets(input, BUFSIZ, stdin);
+    chomp(input);
+    printf("INPUT: [%s]\n", input);
+  }
+
+  // Cleanup
+  mq_delete(mq);
 }
