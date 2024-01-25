@@ -5,6 +5,8 @@
 #include "mq/socket.h"
 #include "mq/string.h"
 
+#include <unistd.h>
+
 /* Internal Constants */
 
 #define SENTINEL "SHUTDOWN"
@@ -84,7 +86,7 @@ void mq_publish(MessageQueue *mq, const char *topic, const char *body) {
     Request* req = request_create(method, uri, body);
 
     // put in queue
-    queue_push(&mq->outgoing, req);
+    queue_push(mq->outgoing, req);
 }
 
 /**
@@ -110,7 +112,8 @@ void mq_subscribe(MessageQueue *mq, const char *topic) {
     Request* req = request_create(method, uri, NULL);
 
     // put in queue
-    queue_push(&mq->outgoing, req);
+    queue_push(mq->outgoing, req);
+
 }
 
 /**
@@ -127,7 +130,7 @@ void mq_unsubscribe(MessageQueue *mq, const char *topic) {
     Request* req = request_create(method, uri, NULL);
 
     // put in queue
-    queue_push(&mq->outgoing, req);
+    queue_push(mq->outgoing, req);
 }
 
 /**
@@ -137,7 +140,6 @@ void mq_unsubscribe(MessageQueue *mq, const char *topic) {
  * @param   mq      Message Queue structure.
  */
 void mq_start(MessageQueue *mq) {
-    FILE* socket = socket_connect(mq->host, mq->port);
     pthread_t pusher;
     pthread_t puller;
     pthread_create(&pusher, NULL, mq_pusher, (void*) mq);
@@ -170,16 +172,22 @@ void * mq_pusher(void *arg) {
     // Producer
     MessageQueue* mq = (MessageQueue*) arg;
     while (!mq_shutdown(mq)) {
+        info("Pusher start\n");
         pthread_mutex_lock(&mq->outgoing->mutex);
         while (mq->outgoing->size == 0) {
+            info("outgoing queue = 0, going sleep\n");
             pthread_cond_wait(&mq->outgoing->notEmpty, &mq->outgoing->mutex);
         }
-
+        pthread_mutex_unlock(&mq->outgoing->mutex);
+        info("Sending msg\n");
         // Send message to server
         Request* req = queue_pop(mq->outgoing);
-        pthread_mutex_unlock(&mq->outgoing->mutex);
+        FILE* socket = socket_connect(mq->host, mq->port);
+        if (socket == NULL) {
+            error("socket is null!\n");
+        }
+        request_write(req, socket);
     }
-
     return NULL;
 }
 
@@ -198,7 +206,7 @@ void * mq_puller(void *arg) {
     sprintf(uri, fmt_string, mq->name);
     Request* req = request_create(method, uri, NULL);
     FILE* socket = socket_connect(mq->host, mq->port);
-    request_write(req, socket);
+    // request_write(req, socket);
 }
 
 /**

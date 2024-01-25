@@ -77,6 +77,7 @@ void queue_push(Queue *q, Request *r) {
         q->size++;
     }
     pthread_mutex_unlock(&q->mutex);
+    pthread_cond_signal(&q->notEmpty);
 }
 
 /**

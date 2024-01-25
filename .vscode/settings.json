@@ -2,6 +2,7 @@
   "files.associations": {
     "__config": "c",
     "queue.h": "c",
-    "thread.h": "c"
+    "thread.h": "c",
+    "logging.h": "c"
   }
 }

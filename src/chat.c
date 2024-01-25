@@ -10,13 +10,17 @@ MessageQueue* mq;
 int main() {
   // Initialize
   char name[] = "chatx";
-  char host[] = "localhost";
-  char port[] = "9000";
+  char host[] = "0.0.0.0";
+  char port[] = "9002";
   mq = mq_create(name, host, port);
   if (mq == NULL) {
     fprintf(stderr, "error creating mq\n");
     exit(1);
   }
+
+  // start the application and subscriptions
+  mq_start(mq);
+  mq_subscribe(mq, "chat");
 
   // Start event loop
   while (!feof(stdin)) {
@@ -24,8 +28,16 @@ int main() {
     char input[BUFSIZ];
 
     fgets(input, BUFSIZ, stdin);
-    chomp(input);
-    printf("INPUT: [%s]\n", input);
+    size_t len = strlen(input);
+    input[len - 1] = '\0';
+    info("len: %zu, Input: [%s]\n", len, input);
+    if (strcmp(input, "/exit") == 0 || strcmp(input, "/quit") == 0) {
+      info("peaceful exit by user\n");
+      break;
+    }
+
+    mq_publish(mq, "chat", input);
+
   }
 
   // Cleanup

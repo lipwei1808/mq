@@ -82,6 +82,7 @@ class QueueHandler(BaseHandler):
 class SubscriptionHandler(BaseHandler):
     def put(self, queue, topic):
         ''' Subscribe queue to topic. '''
+        printf("Putting " + queue + " " + topic)
         try:
             self.application.subscriptions[queue].add(topic)
             if queue not in self.application.queues:
@@ -124,6 +125,7 @@ class MessageQueue(tornado.web.Application):
 
     def run(self):
         try:
+            print("Port: " + str(self.port) + " Address: " + str(self.address))
             self.listen(self.port, self.address)
         except socket.error as e:
             self.logger.fatal('Unable to listen on {}:{} = {}'.format(self.address, self.port, e))
@@ -140,6 +142,5 @@ if __name__ == '__main__':
     tornado.options.parse_command_line()
 
     signal.signal(signal.SIGTERM, lambda s, e: sys.exit(0))
-
     message_queue = MessageQueue(**tornado.options.options.as_dict())
     message_queue.run()
