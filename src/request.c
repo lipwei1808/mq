@@ -50,10 +50,6 @@ void request_write(Request *r, FILE *fs) {
                 r->method, r->uri);
         int res = fprintf(fs, "%s %s HTTP/1.0\r\n\r\n",
                 r->method, r->uri);
-        if (res < 0) 
-            error("error writing to socket\n");
-        else 
-            info("no error writing to socket res=%d\n", res);
     } else {
         fprintf(fs, "%s %s HTTP/1.0\r\nContent-Length: %zu\r\n\r\n%s\n",
                 r->method, r->uri, strlen(r->body), r->body);

@@ -6,6 +6,7 @@
 #include "mq/string.h"
 
 #include <unistd.h>
+#include <errno.h>
 
 /* Internal Constants */
 
@@ -95,7 +96,18 @@ void mq_publish(MessageQueue *mq, const char *topic, const char *body) {
  * @return  Newly allocated message body (must be freed).
  */
 char * mq_retrieve(MessageQueue *mq) {
-    return NULL;
+    pthread_mutex_lock(&mq->incoming->mutex);
+    while (mq->incoming->size == 0) {
+        pthread_cond_wait(&mq->incoming->notEmpty, &mq->incoming->mutex);
+    }
+
+    Request* req = queue_pop(mq->incoming);
+    if (req == NULL) {
+        error("popped an empty request from [mq_retrieve]\n");
+        return NULL;
+    }
+
+    return req->body;
 }
 
 /**
@@ -152,6 +164,7 @@ void mq_start(MessageQueue *mq) {
  * @param   mq      Message Queue structure.
  */
 void mq_stop(MessageQueue *mq) {
+    mq->shutdown = true;
 }
 
 /**
@@ -172,14 +185,11 @@ void * mq_pusher(void *arg) {
     // Producer
     MessageQueue* mq = (MessageQueue*) arg;
     while (!mq_shutdown(mq)) {
-        info("Pusher start\n");
         pthread_mutex_lock(&mq->outgoing->mutex);
         while (mq->outgoing->size == 0) {
-            info("outgoing queue = 0, going sleep\n");
             pthread_cond_wait(&mq->outgoing->notEmpty, &mq->outgoing->mutex);
         }
         pthread_mutex_unlock(&mq->outgoing->mutex);
-        info("Sending msg\n");
         // Send message to server
         Request* req = queue_pop(mq->outgoing);
         FILE* socket = socket_connect(mq->host, mq->port);
@@ -187,6 +197,7 @@ void * mq_pusher(void *arg) {
             error("socket is null!\n");
         }
         request_write(req, socket);
+        fflush(socket);
     }
     return NULL;
 }
@@ -199,14 +210,28 @@ void * mq_pusher(void *arg) {
 void * mq_puller(void *arg) {
     // Consumer
     MessageQueue* mq = (MessageQueue*) arg;
-    char* method = mq_get_method(GET);
-    char fmt_string[] = "/queue/%s";
-    int size = snprintf(NULL, 0, fmt_string, mq->name);
-    char* uri = malloc(sizeof(char) * (size + 1));
-    sprintf(uri, fmt_string, mq->name);
-    Request* req = request_create(method, uri, NULL);
-    FILE* socket = socket_connect(mq->host, mq->port);
-    // request_write(req, socket);
+    while (!mq_shutdown(mq)) {
+        char* method = mq_get_method(GET);
+        char fmt_string[] = "/queue/%s";
+        int size = snprintf(NULL, 0, fmt_string, mq->name);
+        char* uri = malloc(sizeof(char) * (size + 1));
+        sprintf(uri, fmt_string, mq->name);
+        Request* req = request_create(method, uri, NULL);
+        FILE* socket = socket_connect(mq->host, mq->port);
+        request_write(req, socket);
+        fflush(socket);
+        char response[BUFSIZ];
+        int x = read(fileno(socket), response, BUFSIZ);
+        if (x == -1) {
+            error("THERE IS AN ERROR from reading by puller %d\n", errno);
+        }
+    
+        // Parse response into method, uri, body
+
+        // Create the Request
+
+        // Put into incoming queue
+    }
 }
 
 /**

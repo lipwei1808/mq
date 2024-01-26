@@ -82,7 +82,6 @@ class QueueHandler(BaseHandler):
 class SubscriptionHandler(BaseHandler):
     def put(self, queue, topic):
         ''' Subscribe queue to topic. '''
-        printf("Putting " + queue + " " + topic)
         try:
             self.application.subscriptions[queue].add(topic)
             if queue not in self.application.queues:
