@@ -46,14 +46,10 @@ void request_delete(Request *r) {
  */
 void request_write(Request *r, FILE *fs) {
     if (r->body == NULL) {
-        fprintf(stdout, "%s %s HTTP/1.0\r\n\r\n",
-                r->method, r->uri);
-        int res = fprintf(fs, "%s %s HTTP/1.0\r\n\r\n",
+        fprintf(fs, "%s %s HTTP/1.0\r\n\r\n",
                 r->method, r->uri);
     } else {
         fprintf(fs, "%s %s HTTP/1.0\r\nContent-Length: %zu\r\n\r\n%s\n",
-                r->method, r->uri, strlen(r->body), r->body);
-        fprintf(stdout, "%s %s HTTP/1.0\r\nContent-Length: %zu\r\n\r\n%s\n",
                 r->method, r->uri, strlen(r->body), r->body);
     }
 }

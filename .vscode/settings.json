@@ -3,6 +3,8 @@
     "__config": "c",
     "queue.h": "c",
     "thread.h": "c",
-    "logging.h": "c"
+    "logging.h": "c",
+    "string.h": "c",
+    "_pthread_types.h": "c"
   }
 }

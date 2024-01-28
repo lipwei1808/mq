@@ -23,7 +23,6 @@ FILE *  socket_connect(const char *host, const char *port) {
 	.ai_socktype = SOCK_STREAM, /* Use TCP */
     };
     int status;
-    info("Connecting to %s:%s", host, port);
     if ((status = getaddrinfo(host, port, &hints, &results)) != 0) {
         error("Unable to resolve %s:%s: %s", host, port, gai_strerror(status));
         return NULL;

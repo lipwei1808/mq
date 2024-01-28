@@ -77,16 +77,16 @@ void mq_delete(MessageQueue *mq) {
  * @param   body    Message body to publish.
  */
 void mq_publish(MessageQueue *mq, const char *topic, const char *body) {
-    // generate request
+    // get parameters
     char* method = mq_get_method(PUT);
-    size_t topic_len = strlen(topic);
+
     char fmt_string[] = "/topic/%s";
     int size = snprintf(NULL, 0, fmt_string, topic);
     char* uri = malloc(sizeof(char) * (size + 1));
     sprintf(uri, fmt_string, topic);
-    Request* req = request_create(method, uri, body);
 
-    // put in queue
+    // insert request
+    Request* req = request_create(method, uri, body);
     queue_push(mq->outgoing, req);
 }
 
@@ -122,9 +122,8 @@ void mq_subscribe(MessageQueue *mq, const char *topic) {
     int size = snprintf(NULL, 0, fmt_string, mq->name, topic);
     char* uri = malloc(sizeof(char) * (size + 1));
     sprintf(uri, fmt_string, mq->name, topic);
-    Request* req = request_create(method, uri, NULL);
 
-    // put in queue
+    Request* req = request_create(method, uri, NULL);
     queue_push(mq->outgoing, req);
 
 }
@@ -140,9 +139,8 @@ void mq_unsubscribe(MessageQueue *mq, const char *topic) {
     int size = snprintf(NULL, 0, fmt_string, mq->name, topic);
     char* uri = malloc(sizeof(char) * (size + 1));
     sprintf(uri, fmt_string, mq->name, topic);
-    Request* req = request_create(method, uri, NULL);
 
-    // put in queue
+    Request* req = request_create(method, uri, NULL);
     queue_push(mq->outgoing, req);
 }
 
@@ -228,14 +226,12 @@ void * mq_puller(void *arg) {
             error("THERE IS AN ERROR from reading by puller %d\n", errno);
         }
         response[x] = '\0';
-        printf("[RESPONSE]: %s\n", response);
         // Parse response into response code and body
         int response_code;
-        if (sscanf(response, "HTTP/1.%*d %d", &response_code) == feof) {
+        if (sscanf(response, "HTTP/1.%*d %d", &response_code) == -1) {
             error("Error parsing response code\n");
         }
 
-        printf("Parsed Response code: %d\n", response_code);
         
         int content_length;
         char* content_length_start = strstr(response, "Content-Length:");
@@ -243,17 +239,16 @@ void * mq_puller(void *arg) {
             error("error parsing content length\n");
         }
 
-        printf("Parsed other: Content length: %d\n", content_length);
         char* body = strstr(response, "\r\n\r\n");
         body += 4; // move past the whitespaces
         body[content_length] = '\0';
-        printf("Parsed body: %s\n", body);
         // Create the Request   
         Request* r = request_create(NULL, NULL, body);
 
         // Put into incoming queue
         queue_push(mq->incoming, r);
     }
+    return NULL;
 }
 
 /**

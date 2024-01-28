@@ -15,7 +15,7 @@ void* worker(void* arg) {
     }
 
     Request* res = queue_pop(mq->incoming);
-    printf("\n>CHAT: [FROM SERVER] %s\n", res->body);
+    printf("\n[FROM SERVER] %s\n", res->body);
     pthread_mutex_unlock(&mq->incoming->mutex);
   }
   return NULL;
@@ -35,20 +35,18 @@ int main() {
   // start the application and subscriptions
   mq_start(mq);
   mq_subscribe(mq, "chat");
-
+  
   // Start puller
   pthread_t puller;
   pthread_create(&puller, NULL, worker, NULL);
 
   // Start event loop
   while (!feof(stdin)) {
-    printf(">CHAT ");
     char input[BUFSIZ];
 
     fgets(input, BUFSIZ, stdin);
     size_t len = strlen(input);
     input[len - 1] = '\0';
-    info("len: %zu, Input: [%s]\n", len, input);
     if (strcmp(input, "/exit") == 0 || strcmp(input, "/quit") == 0) {
       mq_stop(&mq);
       info("peaceful exit by user\n");
