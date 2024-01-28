@@ -15,8 +15,6 @@ void* worker(void* arg) {
     }
 
     Request* res = queue_pop(mq->incoming);
-    // If res is SHUTDOWN, stop
-
     printf("\n[FROM SERVER] %s\n", res->body);
     pthread_mutex_unlock(&mq->incoming->mutex);
   }
@@ -51,7 +49,7 @@ int main() {
     size_t len = strlen(input);
     input[len - 1] = '\0';
     if (strcmp(input, "/exit") == 0 || strcmp(input, "/quit") == 0) {
-      mq_stop(&mq);
+      mq_stop(mq);
       info("peaceful exit by user\n");
       break;
     }

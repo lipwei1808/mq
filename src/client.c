@@ -166,6 +166,7 @@ void mq_stop(MessageQueue *mq) {
     mq->shutdown = true;
 
     // Send sentinel message
+    mq_publish(mq, "SHUTDOWN", "SHUTDOWN");
 }
 
 /**

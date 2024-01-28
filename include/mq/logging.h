@@ -17,10 +17,10 @@
 #endif
 
 #define info(M, ...) \
-    fprintf(stderr, "[%09lu] INFO  " M "\n", pthread_self(), ##__VA_ARGS__)
+    fprintf(stderr, "[%09lu] INFO  " M "\n", (unsigned long) pthread_self(), ##__VA_ARGS__)
 
 #define error(M, ...) \
-    fprintf(stderr, "[%09lu] ERROR " M "\n", pthread_self(), ##__VA_ARGS__)
+    fprintf(stderr, "[%09lu] ERROR " M "\n", (unsigned long) pthread_self(), ##__VA_ARGS__)
 
 #endif
 
