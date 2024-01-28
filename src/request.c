@@ -15,9 +15,30 @@
  */
 Request * request_create(const char *method, const char *uri, const char *body) {
     Request* req = malloc(sizeof(Request));
-    req->method = method;
-    req->uri = uri;
-    req->body = body;
+    if (method == NULL) {
+        req->method = NULL;
+    } else {
+        int size = strlen(method);
+        req->method = malloc(sizeof(char) * ++size);
+        strcpy(req->method, method);
+    }
+
+    if (uri == NULL) {
+        req->uri = NULL;
+    } else {
+        int size = strlen(uri);
+        req->uri = malloc(sizeof(char) * ++size);
+        strcpy(req->uri, uri);
+    }
+
+    if (body == NULL) {
+        req->body = NULL;
+    } else {
+        int size = strlen(body);
+        req->body = malloc(sizeof(char) * ++size);
+        strcpy(req->body, body);
+    }
+
     req->next = NULL;
     return req;
 }

@@ -15,6 +15,8 @@ void* worker(void* arg) {
     }
 
     Request* res = queue_pop(mq->incoming);
+    // If res is SHUTDOWN, stop
+
     printf("\n[FROM SERVER] %s\n", res->body);
     pthread_mutex_unlock(&mq->incoming->mutex);
   }
@@ -35,6 +37,7 @@ int main() {
   // start the application and subscriptions
   mq_start(mq);
   mq_subscribe(mq, "chat");
+  mq_subscribe(mq, "SHUTDOWN");
   
   // Start puller
   pthread_t puller;

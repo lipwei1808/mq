@@ -82,7 +82,7 @@ void mq_publish(MessageQueue *mq, const char *topic, const char *body) {
 
     char fmt_string[] = "/topic/%s";
     int size = snprintf(NULL, 0, fmt_string, topic);
-    char* uri = malloc(sizeof(char) * (size + 1));
+    char uri[size + 1];
     sprintf(uri, fmt_string, topic);
 
     // insert request
@@ -120,7 +120,7 @@ void mq_subscribe(MessageQueue *mq, const char *topic) {
     char* method = mq_get_method(PUT);
     char fmt_string[] = "/subscription/%s/%s";
     int size = snprintf(NULL, 0, fmt_string, mq->name, topic);
-    char* uri = malloc(sizeof(char) * (size + 1));
+    char uri[size + 1];
     sprintf(uri, fmt_string, mq->name, topic);
 
     Request* req = request_create(method, uri, NULL);
@@ -137,7 +137,7 @@ void mq_unsubscribe(MessageQueue *mq, const char *topic) {
     char* method = mq_get_method(DELETE);
     char fmt_string[] = "/subscription/%s/%s";
     int size = snprintf(NULL, 0, fmt_string, mq->name, topic);
-    char* uri = malloc(sizeof(char) * (size + 1));
+    char uri[size + 1];
     sprintf(uri, fmt_string, mq->name, topic);
 
     Request* req = request_create(method, uri, NULL);
@@ -164,6 +164,8 @@ void mq_start(MessageQueue *mq) {
  */
 void mq_stop(MessageQueue *mq) {
     mq->shutdown = true;
+
+    // Send sentinel message
 }
 
 /**
