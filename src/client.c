@@ -102,6 +102,7 @@ char * mq_retrieve(MessageQueue *mq) {
     }
 
     Request* req = queue_pop(mq->incoming);
+    pthread_mutex_unlock(&mq->incoming->mutex);
     if (req == NULL) {
         error("popped an empty request from [mq_retrieve]\n");
         return NULL;
@@ -189,9 +190,10 @@ void * mq_pusher(void *arg) {
         while (mq->outgoing->size == 0) {
             pthread_cond_wait(&mq->outgoing->notEmpty, &mq->outgoing->mutex);
         }
-        pthread_mutex_unlock(&mq->outgoing->mutex);
         // Send message to server
         Request* req = queue_pop(mq->outgoing);
+        pthread_mutex_unlock(&mq->outgoing->mutex);
+
         FILE* socket = socket_connect(mq->host, mq->port);
         if (socket == NULL) {
             error("socket is null!\n");
@@ -225,12 +227,32 @@ void * mq_puller(void *arg) {
         if (x == -1) {
             error("THERE IS AN ERROR from reading by puller %d\n", errno);
         }
-    
-        // Parse response into method, uri, body
+        response[x] = '\0';
+        printf("[RESPONSE]: %s\n", response);
+        // Parse response into response code and body
+        int response_code;
+        if (sscanf(response, "HTTP/1.%*d %d", &response_code) == feof) {
+            error("Error parsing response code\n");
+        }
 
-        // Create the Request
+        printf("Parsed Response code: %d\n", response_code);
+        
+        int content_length;
+        char* content_length_start = strstr(response, "Content-Length:");
+        if (sscanf(content_length_start, "Content-Length: %d", &content_length) == -1) {
+            error("error parsing content length\n");
+        }
+
+        printf("Parsed other: Content length: %d\n", content_length);
+        char* body = strstr(response, "\r\n\r\n");
+        body += 4; // move past the whitespaces
+        body[content_length] = '\0';
+        printf("Parsed body: %s\n", body);
+        // Create the Request   
+        Request* r = request_create(NULL, NULL, body);
 
         // Put into incoming queue
+        queue_push(mq->incoming, r);
     }
 }
 
