@@ -79,7 +79,6 @@ void mq_delete(MessageQueue *mq) {
 void mq_publish(MessageQueue *mq, const char *topic, const char *body) {
     // get parameters
     char* method = mq_get_method(PUT);
-
     char fmt_string[] = "/topic/%s";
     int size = snprintf(NULL, 0, fmt_string, topic);
     char uri[size + 1];
@@ -88,6 +87,7 @@ void mq_publish(MessageQueue *mq, const char *topic, const char *body) {
     // insert request
     Request* req = request_create(method, uri, body);
     queue_push(mq->outgoing, req);
+    free(method);
 }
 
 /**
@@ -98,7 +98,14 @@ void mq_publish(MessageQueue *mq, const char *topic, const char *body) {
 char * mq_retrieve(MessageQueue *mq) {
     Request* req = queue_pop(mq->incoming);
     // TODO: relook at this req memory (need to free - currently not freed)
-    return req->body;
+    if (strcmp(req->body, SENTINEL) == 0) {
+        request_delete(req);
+        return NULL;
+    }
+    char* body = malloc(sizeof(char) * (strlen(req->body) + 1));
+    strcpy(body, req->body);
+    request_delete(req);
+    return body;
 }
 
 /**
@@ -115,7 +122,7 @@ void mq_subscribe(MessageQueue *mq, const char *topic) {
 
     Request* req = request_create(method, uri, NULL);
     queue_push(mq->outgoing, req);
-
+    free(method);
 }
 
 /**
@@ -132,6 +139,7 @@ void mq_unsubscribe(MessageQueue *mq, const char *topic) {
 
     Request* req = request_create(method, uri, NULL);
     queue_push(mq->outgoing, req);
+    free(method);
 }
 
 /**
@@ -142,10 +150,8 @@ void mq_unsubscribe(MessageQueue *mq, const char *topic) {
  */
 void mq_start(MessageQueue *mq) {
     mq_subscribe(mq, "SHUTDOWN");
-    pthread_t pusher;
-    pthread_t puller;
-    pthread_create(&pusher, NULL, mq_pusher, (void*) mq);
-    pthread_create(&puller, NULL, mq_puller, (void*) mq);
+    pthread_create(&mq->pusher, NULL, mq_pusher, (void*) mq);
+    pthread_create(&mq->puller, NULL, mq_puller, (void*) mq);
 }
 
 /**
@@ -158,6 +164,8 @@ void mq_stop(MessageQueue *mq) {
 
     // Send sentinel message
     mq_publish(mq, "SHUTDOWN", "SHUTDOWN");
+    pthread_join(mq->pusher, NULL);
+    pthread_join(mq->puller, NULL);
 }
 
 /**
@@ -186,6 +194,7 @@ void * mq_pusher(void *arg) {
         }
         request_write(req, socket);
         fflush(socket);
+        request_delete(req);
     }
     return NULL;
 }
@@ -202,9 +211,10 @@ void * mq_puller(void *arg) {
         char* method = mq_get_method(GET);
         char fmt_string[] = "/queue/%s";
         int size = snprintf(NULL, 0, fmt_string, mq->name);
-        char* uri = malloc(sizeof(char) * (size + 1));
+        char uri[size + 1];
         sprintf(uri, fmt_string, mq->name);
         Request* req = request_create(method, uri, NULL);
+
         FILE* socket = socket_connect(mq->host, mq->port);
         request_write(req, socket);
         fflush(socket);
@@ -220,24 +230,26 @@ void * mq_puller(void *arg) {
             error("Error parsing response code\n");
         }
 
-        if (response_code != 200) {
-            continue;
-        }
-        
-        int content_length;
-        char* content_length_start = strstr(response, "Content-Length:");
-        if (sscanf(content_length_start, "Content-Length: %d", &content_length) == -1) {
-            error("error parsing content length\n");
+        if (response_code == 200) {
+            int content_length;
+            char* content_length_start = strstr(response, "Content-Length:");
+            if (sscanf(content_length_start, "Content-Length: %d", &content_length) == -1) {
+                error("error parsing content length\n");
+            }
+
+            char* body = strstr(response, "\r\n\r\n");
+            body += 4; // move past the whitespaces
+            body[content_length] = '\0';
+            // Create the Request   
+            Request* r = request_create(NULL, NULL, body);
+
+            // Put into incoming queue
+            queue_push(mq->incoming, r);
         }
 
-        char* body = strstr(response, "\r\n\r\n");
-        body += 4; // move past the whitespaces
-        body[content_length] = '\0';
-        // Create the Request   
-        Request* r = request_create(NULL, NULL, body);
-
-        // Put into incoming queue
-        queue_push(mq->incoming, r);
+        // cleanup resources
+        request_delete(req);
+        free(method);
     }
     return NULL;
 }

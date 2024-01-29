@@ -17,6 +17,7 @@ void* worker(void* arg) {
   while (!mq_shutdown(mq)) {
     char* message = mq_retrieve(mq);
     printf("\n[FROM SERVER] %s\n", message);
+    free(message);
   }
   return NULL;
 }

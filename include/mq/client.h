@@ -27,6 +27,8 @@ struct MessageQueue {
     bool    shutdown;		// Whether or not to shutdown
 
     /* TODO: Add any necessary thread and synchronization primitives */
+    pthread_t pusher;
+    pthread_t puller;
 };
 
 MessageQueue *	mq_create(const char *name, const char *host, const char *port);
