@@ -5,10 +5,13 @@
 
 #include <string.h>
 
+// Global variables
 MessageQueue* mq;
+char chat[BUFSIZ] = "";
 
 #define DEFAULT_PORT "9002"
 #define DEFAULT_HOST "0.0.0.0"
+#define SPACE " "
 
 void* worker(void* arg) {
   while (!mq_shutdown(mq)) {
@@ -106,7 +109,6 @@ int main(int argc, char* argv[]) {
 
   // start the application and subscriptions
   mq_start(mq);
-  mq_subscribe(mq, "chat");
   mq_subscribe(mq, "SHUTDOWN");
   
   // Start puller
@@ -115,19 +117,75 @@ int main(int argc, char* argv[]) {
 
   // Start event loop
   while (!feof(stdin)) {
+    // Get user input
     char input[BUFSIZ];
-
-    fgets(input, BUFSIZ, stdin);
+    while (fgets(input, BUFSIZ, stdin) == NULL && !feof(stdin));
+    // replace ending whitespace with null terminator
     size_t len = strlen(input);
     input[len - 1] = '\0';
-    if (strcmp(input, "/exit") == 0 || strcmp(input, "/quit") == 0) {
+
+    // Parse user input
+    char copyInput[BUFSIZ];
+    strcpy(copyInput, input);
+    char command[BUFSIZ] = "";
+    char argument[BUFSIZ] = "";
+    char* token = strtok(copyInput, " ");
+
+    if (token != NULL) {
+      strcat(command, token);
+    }
+    token = strtok(NULL, " ");
+    while (token != NULL) {
+      strcat(argument, token);
+      token = strtok(NULL, " ");
+      if (token != NULL) {
+        strcat(argument, SPACE);
+      }
+    }
+
+    if (strcmp(command, "/exit") == 0 || strcmp(command, "/quit") == 0) {
       mq_stop(mq);
       info("peaceful exit by user\n");
       break;
+    } else if (strcmp(command, "/subscribe") == 0) {
+      if (strcmp(argument, "") == 0) {
+        error("invalid arg\n");
+      }
+      if (strcmp(chat, "") != 0) {
+        error("already subscribe to a chat, /unsubscribe %s first before subscribing\n", chat);
+        continue;
+      }
+      strcpy(chat, argument);
+
+      char* token = strchr(argument, ' ');
+      if (token != NULL) {
+        error("invalid topic to subscribe\n");
+        continue;
+      }
+      mq_subscribe(mq, argument);
+    } else if (strcmp(command, "/unsubscribe") == 0) {
+      if (strcmp(argument, "") == 0) {
+        error("invalid arg\n");
+      }
+      char* token = strchr(argument, ' ');
+      if (token != NULL) {
+        error("invalid topic to unsubscribe\n");
+        continue;
+      }
+
+      if (strcmp(chat, "") == 0) {
+        error("not subscribed to a chat yet, /subscribe %s first", argument);
+        continue;
+      }
+      strcpy(chat, "");
+      mq_unsubscribe(mq, argument);
+    } else {
+      if (strcmp(chat, "") == 0) {
+        error("subscribe to a chat first with /subscribe <chat>\n");
+      } else {
+        mq_publish(mq, "chat", input);
+      }
     }
-
-    mq_publish(mq, "chat", input);
-
   }
 
   // Cleanup
