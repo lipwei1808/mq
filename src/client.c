@@ -141,6 +141,7 @@ void mq_unsubscribe(MessageQueue *mq, const char *topic) {
  * @param   mq      Message Queue structure.
  */
 void mq_start(MessageQueue *mq) {
+    mq_subscribe(mq, "SHUTDOWN");
     pthread_t pusher;
     pthread_t puller;
     pthread_create(&pusher, NULL, mq_pusher, (void*) mq);

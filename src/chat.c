@@ -101,9 +101,8 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
 
-  // start the application and subscriptions
+  // start the application 
   mq_start(mq);
-  mq_subscribe(mq, "SHUTDOWN");
   
   // Start puller
   pthread_t puller;
