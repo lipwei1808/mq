@@ -97,11 +97,7 @@ void mq_publish(MessageQueue *mq, const char *topic, const char *body) {
  */
 char * mq_retrieve(MessageQueue *mq) {
     Request* req = queue_pop(mq->incoming);
-    if (req == NULL) {
-        error("popped an empty request from [mq_retrieve]\n");
-        return NULL;
-    }
-
+    // TODO: relook at this req memory (need to free - currently not freed)
     return req->body;
 }
 
@@ -223,6 +219,9 @@ void * mq_puller(void *arg) {
             error("Error parsing response code\n");
         }
 
+        if (response_code != 200) {
+            continue;
+        }
         
         int content_length;
         char* content_length_start = strstr(response, "Content-Length:");
@@ -267,7 +266,7 @@ char*       mq_get_method(enum HTTP_METHOD method) {
             return NULL;
         }
     }
-    method_ptr = malloc(sizeof(char) * strlen(str));
+    method_ptr = malloc(sizeof(char) * (strlen(str) + 1));
     strcpy(method_ptr, str);
     return method_ptr;
 }

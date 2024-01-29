@@ -15,8 +15,8 @@ char chat[BUFSIZ] = "";
 
 void* worker(void* arg) {
   while (!mq_shutdown(mq)) {
-    Request* res = queue_pop(mq->incoming);
-    printf("\n[FROM SERVER] %s\n", res->body);
+    char* message = mq_retrieve(mq);
+    printf("\n[FROM SERVER] %s\n", message);
   }
   return NULL;
 }
@@ -158,8 +158,9 @@ int main(int argc, char* argv[]) {
       }
       mq_subscribe(mq, argument);
     } else if (strcmp(command, "/unsubscribe") == 0) {
-      if (strcmp(argument, "") == 0) {
+      if (strcmp(argument, chat) != 0) {
         error("invalid arg\n");
+        continue;
       }
       char* token = strchr(argument, ' ');
       if (token != NULL) {
@@ -167,17 +168,13 @@ int main(int argc, char* argv[]) {
         continue;
       }
 
-      if (strcmp(chat, "") == 0) {
-        error("not subscribed to a chat yet, /subscribe %s first", argument);
-        continue;
-      }
       strcpy(chat, "");
       mq_unsubscribe(mq, argument);
     } else {
       if (strcmp(chat, "") == 0) {
         error("subscribe to a chat first with /subscribe <chat>\n");
       } else {
-        mq_publish(mq, "chat", input);
+        mq_publish(mq, chat, input);
       }
     }
   }
