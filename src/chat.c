@@ -15,14 +15,8 @@ char chat[BUFSIZ] = "";
 
 void* worker(void* arg) {
   while (!mq_shutdown(mq)) {
-    pthread_mutex_lock(&mq->incoming->mutex);
-    while (mq->incoming->size == 0) {
-      pthread_cond_wait(&mq->incoming->notEmpty, &mq->incoming->mutex);
-    }
-
     Request* res = queue_pop(mq->incoming);
     printf("\n[FROM SERVER] %s\n", res->body);
-    pthread_mutex_unlock(&mq->incoming->mutex);
   }
   return NULL;
 }

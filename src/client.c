@@ -96,13 +96,7 @@ void mq_publish(MessageQueue *mq, const char *topic, const char *body) {
  * @return  Newly allocated message body (must be freed).
  */
 char * mq_retrieve(MessageQueue *mq) {
-    pthread_mutex_lock(&mq->incoming->mutex);
-    while (mq->incoming->size == 0) {
-        pthread_cond_wait(&mq->incoming->notEmpty, &mq->incoming->mutex);
-    }
-
     Request* req = queue_pop(mq->incoming);
-    pthread_mutex_unlock(&mq->incoming->mutex);
     if (req == NULL) {
         error("popped an empty request from [mq_retrieve]\n");
         return NULL;
@@ -187,14 +181,8 @@ void * mq_pusher(void *arg) {
     // Producer
     MessageQueue* mq = (MessageQueue*) arg;
     while (!mq_shutdown(mq)) {
-        pthread_mutex_lock(&mq->outgoing->mutex);
-        while (mq->outgoing->size == 0) {
-            pthread_cond_wait(&mq->outgoing->notEmpty, &mq->outgoing->mutex);
-        }
         // Send message to server
         Request* req = queue_pop(mq->outgoing);
-        pthread_mutex_unlock(&mq->outgoing->mutex);
-
         FILE* socket = socket_connect(mq->host, mq->port);
         if (socket == NULL) {
             error("socket is null!\n");

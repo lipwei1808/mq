@@ -86,21 +86,23 @@ void queue_push(Queue *q, Request *r) {
  * @return  Request structure.
  */
 Request * queue_pop(Queue *q) {
-    if (q->size == 0) {
-        return NULL;
+    pthread_mutex_lock(&q->mutex);
+    while (q->size == 0) {
+      pthread_cond_wait(&q->notEmpty, &q->mutex);
     }
-
     if (q->size == 1) {
         Request* req = q->head;
         q->head = NULL;
         q->tail = NULL;
         q->size = 0;
+        pthread_mutex_unlock(&q->mutex);
         return req;
     }
 
     Request* req = q->head;
     q->head = req->next;
     q->size--;
+    pthread_mutex_unlock(&q->mutex);
     return req;
 }
 
