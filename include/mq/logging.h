@@ -11,7 +11,7 @@
 
 #ifndef NDEBUG
 #define debug(M, ...) \
-    fprintf(stderr, "[%09lu] DEBUG %s:%d:%s: " M "\n", pthread_self(), __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+    fprintf(stderr, "[%09lu] DEBUG %s:%d:%s: " M "\n", (unsigned long) pthread_self(), __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 #else
 #define debug(M, ...)
 #endif

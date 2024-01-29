@@ -5,6 +5,7 @@
     "thread.h": "c",
     "logging.h": "c",
     "string.h": "c",
-    "_pthread_types.h": "c"
+    "_pthread_types.h": "c",
+    "netdb.h": "c"
   }
 }
